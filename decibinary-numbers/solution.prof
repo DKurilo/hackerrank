@@ -1,0 +1,106 @@
+	Sat Feb 23 19:22 2019 Time and Allocation Profiling Report  (Final)
+
+	   solution +RTS -p -RTS
+
+	total time  =       83.84 secs   (83843 ticks @ 1000 us, 1 processor)
+	total alloc = 118,381,819,152 bytes  (excludes profiling overheads)
+
+COST CENTRE               MODULE    SRC                            %time %alloc
+
+decibinaryNumbers.c       Main      solution.hs:(51,11)-(55,80)     39.9   34.9
+genCs.go.\                Main      solution.hs:(113,37)-(122,60)   15.9   19.3
+decibinaryNumbers.\       Main      solution.hs:(45,34)-(46,71)      7.9    5.9
+decibinaryNumbers.kr'.get Main      solution.hs:(90,21)-(91,49)      5.2    5.2
+genCs.go                  Main      solution.hs:(112,9)-(132,33)     5.2    6.4
+pow2                      Main      solution.hs:103:1-35             4.2    4.5
+decibinaryNumbers.r'      Main      solution.hs:(73,11)-(77,60)      3.1    3.0
+main.\                    Main      solution.hs:(240,30)-(246,30)    2.2    1.1
+decibinaryNumbers.nw'     Main      solution.hs:(65,11)-(66,46)      1.9    1.8
+genCs.go.\.n'             Main      solution.hs:114:43-57            1.8    2.1
+decibinaryNumbers.kr      Main      solution.hs:82:11-50             1.7    0.8
+decibinaryNumbers         Main      solution.hs:(44,1)-(94,23)       1.6    1.5
+decibinaryNumbers.nw      Main      solution.hs:61:11-50             1.6    0.8
+decibinaryNumbers.r       Main      solution.hs:71:11-47             1.1    0.5
+decibinaryNumbers.nws     Main      solution.hs:68:11-92             1.1    3.7
+decibinaryNumbers.rs      Main      solution.hs:79:11-51             0.8    3.0
+decibinaryNumbers.krs     Main      solution.hs:93:11-55             0.8    2.5
+
+
+                                                                                                          individual      inherited
+COST CENTRE                      MODULE                  SRC                           no.     entries  %time %alloc   %time %alloc
+
+MAIN                             MAIN                    <built-in>                    146          0    0.0    0.0   100.0  100.0
+ CAF                             Main                    <entire-module>               291          0    0.0    0.0    26.6   32.1
+  bcs                            Main                    solution.hs:106:1-23          311          1    0.0    0.0     0.0    0.0
+  genCCs                         Main                    solution.hs:(137,1)-(138,89)  307          1    0.0    0.1     0.1    0.2
+   genCCs.\                      Main                    solution.hs:138:30-68         309     285113    0.1    0.1     0.1    0.1
+  genCs                          Main                    solution.hs:(109,1)-(134,13)  310          1    0.0    0.0    26.4   31.8
+   genCs.go                      Main                    solution.hs:(112,9)-(132,33)  313    2851140    5.2    6.4    26.3   31.8
+    genCs.go.\                   Main                    solution.hs:(113,37)-(122,60) 315   28511400   15.9   19.3    20.8   25.1
+     genCs.go.\.n'               Main                    solution.hs:114:43-57         316   28511400    1.8    2.1     4.9    5.8
+      pow2                       Main                    solution.hs:103:1-35          317   28511400    3.2    3.7     3.2    3.7
+    genCs.go.(...)               Main                    solution.hs:(125,22)-(127,44) 319    2851140    0.3    0.3     0.3    0.3
+    genCs.go.n'                  Main                    solution.hs:(125,22)-(127,44) 318    2851140    0.0    0.0     0.0    0.0
+    genCs.go.d'                  Main                    solution.hs:(125,22)-(127,44) 320    2851139    0.0    0.0     0.0    0.0
+   genCs.bd                      Main                    solution.hs:110:9-34          314          1    0.0    0.0     0.0    0.0
+  genRCCs                        Main                    solution.hs:(141,1)-(142,90)  344          1    0.0    0.1     0.1    0.2
+   genRCCs.\                     Main                    solution.hs:142:31-69         345     285113    0.1    0.1     0.1    0.1
+  main                           Main                    solution.hs:(234,1)-(249,15)  292          1    0.0    0.0     0.0    0.0
+  md                             Main                    solution.hs:33:1-7            312          1    0.0    0.0     0.0    0.0
+  mn                             Main                    solution.hs:30:1-11           308          1    0.0    0.0     0.0    0.0
+ CAF                             GHC.Conc.Signal         <entire-module>               244          0    0.0    0.0     0.0    0.0
+ CAF                             GHC.IO.Encoding         <entire-module>               226          0    0.0    0.0     0.0    0.0
+ CAF                             GHC.IO.Encoding.Iconv   <entire-module>               224          0    0.0    0.0     0.0    0.0
+ CAF                             GHC.IO.Exception        <entire-module>               218          0    0.0    0.0     0.0    0.0
+ CAF                             GHC.IO.FD               <entire-module>               217          0    0.0    0.0     0.0    0.0
+ CAF                             GHC.IO.Handle.FD        <entire-module>               215          0    0.0    0.0     0.0    0.0
+ CAF                             GHC.IO.Handle.Internals <entire-module>               214          0    0.0    0.0     0.0    0.0
+ CAF                             GHC.IO.Handle.Text      <entire-module>               213          0    0.0    0.0     0.0    0.0
+ CAF                             GHC.Read                <entire-module>               200          0    0.0    0.0     0.0    0.0
+ CAF                             Text.Read.Lex           <entire-module>               177          0    0.0    0.0     0.0    0.0
+ main                            Main                    solution.hs:(234,1)-(249,15)  293          0    0.0    0.0    73.4   67.9
+  main.\                         Main                    solution.hs:(240,30)-(246,30) 294     100000    2.2    1.1    73.3   67.9
+   main.\.result                 Main                    solution.hs:243:13-40         295     100000    0.0    0.0    71.2   66.7
+    decibinaryNumbers            Main                    solution.hs:(44,1)-(94,23)    296     100000    1.6    1.5    71.2   66.7
+     decibinaryNumbers.\         Main                    solution.hs:(45,34)-(46,71)   298    6256995    7.9    5.9     8.5    6.2
+      decibinaryNumbers.\.k      Main                    solution.hs:45:38-45          299    6256995    0.1    0.0     0.7    0.3
+       decibinaryNumbers.kr      Main                    solution.hs:82:11-50          301          0    0.6    0.3     0.6    0.3
+      decibinaryNumbers.nw       Main                    solution.hs:61:11-50          354          0    0.0    0.0     0.0    0.0
+     takeWhileInclusive          Main                    solution.hs:(97,1)-(99,48)    297    6256995    0.3    0.3     0.7    0.6
+      decibinaryNumbers.\        Main                    solution.hs:44:80-84          346    6256995    0.4    0.3     0.4    0.3
+     decibinaryNumbers.bkrs      Main                    solution.hs:94:11-23          303     100000    0.0    0.0     0.0    0.0
+     decibinaryNumbers.bnws      Main                    solution.hs:69:11-23          334     100000    0.0    0.0     0.0    0.0
+     decibinaryNumbers.brs       Main                    solution.hs:80:11-22          341     100000    0.0    0.0     0.0    0.0
+     decibinaryNumbers.ccs       Main                    solution.hs:48:11-22          306     100000    0.0    0.0     0.0    0.0
+     decibinaryNumbers.cs        Main                    solution.hs:47:11-20          329     100000    0.0    0.0     0.0    0.0
+     decibinaryNumbers.dec       Main                    solution.hs:(56,11)-(58,26)   305     100000    0.3    0.0     0.3    0.0
+     decibinaryNumbers.kr        Main                    solution.hs:82:11-50          300     100000    0.0    0.0     0.0    0.0
+     decibinaryNumbers.krs       Main                    solution.hs:93:11-55          302     100000    0.8    2.5    43.6   40.2
+      decibinaryNumbers.kr'      Main                    solution.hs:(84,11)-(91,49)   326    6256995    0.4    0.8    42.8   37.7
+       decibinaryNumbers.kr'.get Main                    solution.hs:(90,21)-(91,49)   327   52491736    5.2    5.2    41.1   36.4
+        decibinaryNumbers.c      Main                    solution.hs:(51,11)-(55,80)   328   52491736   35.9   31.2    35.9   31.2
+       decibinaryNumbers.kr'.nwn Main                    solution.hs:87:21-30          330    6256995    0.1    0.0     0.7    0.3
+        decibinaryNumbers.nw     Main                    solution.hs:61:11-50          332          0    0.6    0.3     0.6    0.3
+       decibinaryNumbers.kr'.rn  Main                    solution.hs:88:21-28          337    6256995    0.1    0.0     0.6    0.3
+        decibinaryNumbers.r      Main                    solution.hs:71:11-47          339          0    0.5    0.3     0.5    0.3
+     decibinaryNumbers.mj        Main                    solution.hs:59:11-76          304     100000    0.1    0.0     1.3    0.9
+      dec2bin                    Main                    solution.hs:(161,1)-(163,28)  322    1902501    0.4    0.4     0.6    0.5
+       dec2bin.(...)             Main                    solution.hs:163:11-28         324    1802502    0.2    0.2     0.2    0.2
+       dec2bin.d                 Main                    solution.hs:163:11-28         323    1802502    0.0    0.0     0.0    0.0
+       dec2bin.m                 Main                    solution.hs:163:11-28         325    1802502    0.0    0.0     0.0    0.0
+      digits                     Main                    solution.hs:(166,1)-(167,36)  321    1902501    0.6    0.3     0.6    0.3
+     decibinaryNumbers.nw        Main                    solution.hs:61:11-50          331     100000    0.0    0.0     0.0    0.0
+     decibinaryNumbers.nws       Main                    solution.hs:68:11-92          333     100000    1.1    3.7     5.7    7.0
+      decibinaryNumbers.nw'      Main                    solution.hs:(65,11)-(66,46)   336    6256995    1.9    1.8     4.1    3.0
+       pow2                      Main                    solution.hs:103:1-35          348    6156995    1.0    0.8     1.0    0.8
+       decibinaryNumbers.kr      Main                    solution.hs:82:11-50          349          0    0.6    0.2     0.6    0.2
+       decibinaryNumbers.nw      Main                    solution.hs:61:11-50          347          0    0.5    0.2     0.5    0.2
+      decibinaryNumbers.nws.\    Main                    solution.hs:68:45-66          335    6256995    0.6    0.3     0.6    0.3
+     decibinaryNumbers.r         Main                    solution.hs:71:11-47          338     100000    0.0    0.0     0.0    0.0
+     decibinaryNumbers.rccs      Main                    solution.hs:49:11-24          343     100000    0.0    0.0     0.0    0.0
+     decibinaryNumbers.rs        Main                    solution.hs:79:11-51          340     100000    0.8    3.0     9.4   10.3
+      decibinaryNumbers.r'       Main                    solution.hs:(73,11)-(77,60)   342    6256995    3.1    3.0     8.6    7.4
+       decibinaryNumbers.c       Main                    solution.hs:(51,11)-(55,80)   351    6156995    4.0    3.7     4.0    3.7
+       decibinaryNumbers.kr      Main                    solution.hs:82:11-50          352          0    0.5    0.2     0.5    0.2
+       decibinaryNumbers.nw      Main                    solution.hs:61:11-50          353          0    0.5    0.2     0.5    0.2
+       decibinaryNumbers.r       Main                    solution.hs:71:11-47          350          0    0.5    0.2     0.5    0.2
