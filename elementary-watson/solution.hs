@@ -28,7 +28,7 @@ instance Show Var where
 innerV ∷ Var → Bool
 innerV (Var (N n)) = head n ≡ '_'
 
-data Term = V Var | R RTerm | NV Var | NR RTerm
+data Term = V Var | R RTerm
     deriving (Eq, Ord)
 instance Show Term where
     show (V v) = show v
@@ -329,6 +329,15 @@ prove t (Query cts) = (t', rs)
     where (t', rs) = foldl proveCT (t, RS [Sat DM.empty]) cts
 prove t _ = (t, RS [])
 
+-- it's not the best way to handle not equal conditions.
+-- It can be time and memory conuming. But sorry, it' easiest way with my current solution.
+-- Next time I need to think about it earlier and to keep separately assignments and conditions.
+-- Or I can even replace DM.Map with some other data structure that will work with conditions
+moveNeCond ∷ Op → Op
+moveNeCond (Query cts) = Query $ uncurry (⧺) ∘ foldr (\ct (cts,nects) → case ct of
+        C Ne _ _ → (cts,ct:nects)
+        _ → (ct:cts,nects)) ([],[]) $ cts
+
 main ∷ IO()
 main = takeWhile (≠QUIT) ∘ map fst ∘ join ∘ map (parse op ∘ BSC.unpack) ∘ BSC.split '\n' <$>
        BSC.getContents ≫=
@@ -337,7 +346,7 @@ main = takeWhile (≠QUIT) ∘ map fst ∘ join ∘ map (parse op ∘ BSC.unpack
                        BSC.putStrLn "Ok." --  ∘ BSC.pack ∘ show $ o
                        return (o:os)
                    Query _ → do
-                       let (_, r) = prove (Tok $ tokenize 0 os) o
+                       let (_, r) = prove (Tok $ tokenize 0 os) $ moveNeCond o
                        BSC.putStrLn ∘ BSC.pack ∘ show $ r
                        BSC.putStrLn "Ready."
                        return os
