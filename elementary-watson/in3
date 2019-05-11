@@ -22,7 +22,7 @@
 {([ge: #h, #h2], [insert: #h, #t, #z]) => [insert: #h, [cons: #h2, #t], [cons: #h2, #z]]}.
 
 % test
-([sorted: [cons: a, [cons: b, nil]], #z])?
+([sorted: [cons: b, [cons: a, nil]], #z])?
 ([sorted: [cons: b, [cons: d, [cons: a, [cons: b, [cons: c, [cons: e, nil]]]]]], #z])?
 
 % all done here.

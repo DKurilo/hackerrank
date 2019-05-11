@@ -28,7 +28,7 @@ instance Show Var where
 innerV ∷ Var → Bool
 innerV (Var (N n)) = head n ≡ '_'
 
-data Term = V Var | R RTerm | NV Var | NR RTerm
+data Term = V Var | R RTerm
     deriving (Eq, Ord)
 instance Show Term where
     show (V v) = show v
@@ -71,7 +71,7 @@ instance Show Res where
         | otherwise = "SAT:\n=====" ⧺
                     foldl (\cs (v, t) → cs ⧺ "\n" ⧺ show v ⧺
                                         " := " ⧺ show t) "" (DM.assocs vs')
-        where vs' = DM.filterWithKey (\k a → not ∘ innerV $ k) vs
+        where vs' = vs -- DM.filterWithKey (\k a → not ∘ innerV $ k) vs
 
 newtype Results = RS [Res]
     deriving (Eq, Ord)
@@ -85,7 +85,11 @@ unsat = RS [Unsat]
 
 instance Semigroup Results where
     (<>) r1@(RS rs1) r2@(RS rs2)
-        | r1 ≡ unsat ∨ r2 ≡ unsat = unsat
+        | r1 ≡ unsat ∧ r2 ≡ unsat = unsat
+        | null rs1 ∧ r2 ≡ unsat = unsat
+        | null rs2 ∧ r1 ≡ unsat = unsat
+        | r1 ≡ unsat = unsat
+        | r2 ≡ unsat = unsat
         | otherwise = RS $ rs1 ⧺ rs2
 
 showCTerms ∷ [CTerm] → String
@@ -228,30 +232,6 @@ op = do
                         symbol ")"
                         return cts
 
-newtype Tokenizer = Tok (Tokenizer, [Op])
-
-tokenize ∷ Int → [Op] → (Tokenizer, [Op])
-tokenize c os = (Tok next, os')
-    where (c', os') =  foldr (\o (c, os) → let (c', o') = tokenizeL c o in
-                                           (c', o':os)) (c, []) os
-          next = tokenize c' os
-
-tokenizeL ∷ Int → Op → (Int, Op)
-tokenizeL c (Rule cts t) = (c + DM.size m', Rule ucts t')
-    where (t', m) = go t DM.empty
-          (ucts, m') = foldr (\ct (cts', m') → case ct of
-                   T t' → let (ut, m'') = go t' m' in (T ut:cts', m'')
-                   C cn t1 t2 → let (ut1, m'') = go t1 m'
-                                    (ut2, m''') = go t2 m'' in
-                                (C cn ut1 ut2:cts', m''')) ([], m) cts
-          go ∷ Term → DM.Map Var Var → (Term, DM.Map Var Var)
-          go (V (Var (N n))) m = case DM.lookup (Var $ N n) m of
-                  Just v → (V v, m)
-                  _ → (V $ Var $ N un, DM.insert (Var $ N n) (Var $ N un) m)
-              where un = '_': show (c + DM.size m)
-          go (R (RT n ts)) m = (R $ RT n ts', m')
-              where (ts', m') = foldr (\t (ts', m') → let (t', m'') = go t m' in
-                                                      (t':ts',m'')) ([], m) ts
 applyMap ∷ DM.Map Var Term → [CTerm] → [CTerm]
 applyMap m [] = []
 applyMap m (T t:cts) = (T $ applyMapT m t):applyMap m cts
@@ -271,78 +251,103 @@ compareT m (V v1) (V v2)
                   case mt1 of
                       Just t1 | mt1 ≡ mt2 → Just m
                               | mt2 ≡ Nothing → Just $ selfUpdate $ DM.insert v2 t1 m
-                              | otherwise → Nothing
+                              | otherwise → trace (show (V v1, V v2, m)) Nothing
                       _ | mt1 ≡ mt2 → Just $ selfUpdate $ DM.insert v1 (V v2) m
                         | otherwise → Just $ selfUpdate $ DM.insert v1 ((\(Just v) → v) mt2) m
 compareT m (V v) t@(R _) = case DM.lookup v m of
     Just t' | t ≡ t' → Just m
-            | otherwise → Nothing
+            | otherwise → trace (show (V v, t, m)) Nothing
     _ → Just $ selfUpdate $ DM.insert v t m
 compareT m t@(R _) (V v) = case DM.lookup v m of
     Just t' | t ≡ t' → Just m
-            | otherwise → Nothing
+            | otherwise → trace (show (t, V v, m)) Nothing
     _ → Just $ selfUpdate $ DM.insert v t m
 compareT m t1@(R (RT n1 ts1)) t2@(R (RT n2 ts2))
-    | n1 ≡ n2 ∧ length ts1 ≡ length ts2 = foldl (\mm (t1,t2) →
+    | n1 ≡ n2 ∧ length ts1 ≡ length ts2 =
+        let q = foldl (\mm (t1,t2) →
                 case mm of
                     Just m' → compareT m' (applyMapT m' t1) (applyMapT m' t2)
-                    _ → Nothing) (Just m) $ zip ts1 ts2
+                    _ → Nothing) (Just m) $ zip ts1 ts2 in
+                        case q of
+                            Just m' → trace ("Just " ++ show (t1, t2, m')) q
+                            _  → trace (show (t1, t2, m)) Nothing
     | otherwise = Nothing
 
 selfUpdate ∷ DM.Map Var Term → DM.Map Var Term
 selfUpdate m = DM.map (applyMapT m) m
 
-addMap ∷ DM.Map Var Term → Results → Results
-addMap m (RS rs) = RS $ map (\case
+check ∷ Int → [Op] → [CTerm] → Term → [CTerm] → (Results, Int)
+check c _ _ _ [] = (RS [Sat DM.empty], c)
+check c os rcts rt (T t:ts) = case compareT DM.empty rt t of
+    Just m → let m' = selfUpdate m
+                 (os', c') = tokenizeA c os
+                 (RS rs, c'') = prove c' os' (Query $ applyMap m' rcts)
+                 (os'', c''') = tokenizeA c'' os
+                 rs' = trace ("1 @@" ++ show rs ++ "@@") $ map (\case
                                   Unsat → Unsat
-                                  Sat m' → Sat $ selfUpdate $ DM.union m' m) rs
+                                  Sat m'' → Sat (selfUpdate $ DM.union m'' m')) rs in
+                 if RS rs ≠ unsat
+                   then foldl (\(rrs, rc) (Sat m'') →
+                            let (os', rc') = tokenizeA rc os
+                                (rrs', rc'') = prove rc' os' (Query $ applyMap m'' ts) in
+                            trace ("2 ##" ++ show rrs' ++ "##") $ (rrs <>
+                              (\(RS rrs'') → trace ("3 %%" ++ show rrs'' ++ "%%") $ RS $
+                                  map (\case
+                                           Unsat → Unsat
+                                           Sat m' → Sat (selfUpdate $ DM.union m m'')) rrs'')
+                                rrs', rc'')) (RS [], c''') (trace ("4 $$" ++ show rs' ++ "$$") rs')
+                   else (unsat, c'')
+    _ → (RS [], c)
+check c os rcts rt (C cn t1 t2:cts) = trace (show (t1, t2)) $ case compareT DM.empty t1 t2 of
+    Just _ | cn ≡ Eq → check c os rcts rt cts
+           | otherwise → (unsat, c)
+    _ | cn ≡ Ne → check c os rcts rt cts
+      | otherwise → (unsat, c)
 
-checkT ∷ DM.Map Var Term → Tokenizer → CTerm → (Tokenizer, Results)
-checkT m (Tok (tkn, os)) (T t) = (tkn', rs)
-    where t' = applyMapT m t
-          (tkn', rs) = foldr (\(Rule rcts rt) (tkn, rs) → case compareT m t' rt of
-                  Just m' → let (tkn', rs') = prove tkn (Query $ applyMap m' rcts) in
-                            (tkn', rs <> addMap m' rs')
-                  _ → (tkn, rs)) (tkn, RS []) os
+prove ∷ Int → [Op] → Op → (Results, Int)
+prove c os (Query []) = (RS [Sat DM.empty], c)
+prove c os (Query cts) = foldl (\(rs, c') (Rule rcts rt) → 
+                                    let (rs', c'') = check c os rcts rt cts in
+                                    (rs <> rs', c'')) (RS [], c) os
+prove c _ _ = (RS [], c)
 
-checkC ∷ DM.Map Var Term → CTerm → Res
-checkC m (C cnd t1 t2) = case compareT m (applyMapT m t1) (applyMapT m t2) of
-    Just m' | cnd ≡ Eq → Sat m'
-            | otherwise → Unsat
-    _ | cnd ≡ Ne → Sat m
-      | otherwise → Unsat
+tokenizeA ∷ Int → [Op] → ([Op], Int)
+tokenizeA c = foldr (\o (os', c') → let (o', c'') = tokenize c' o in
+                                      (o':os', c'')) ([], c)
 
-proveCT ∷ (Tokenizer, Results) → CTerm → (Tokenizer, Results)
-proveCT (t, RS rs) ct@T{} = (t', rss')
-    where (t', rss') = foldr (\r (t, rss) → case r of
-                                              Unsat → (t, rss)
-                                              Sat m → let (t', rss') = checkT m t ct in
-                                                      (t', rss' <> rss)) (t, RS []) rs
-proveCT (t, RS rs) ct@C{} = (t, RS $ foldr (\(Sat m) rs → let r = checkC m ct in
-                                                          if r ≡ Unsat
-                                                            then rs
-                                                            else r:rs) [] rs)
-
-prove ∷ Tokenizer → Op → (Tokenizer, Results)
-prove t (Query []) = (t, RS [Sat DM.empty])
-prove t (Query cts) = (t', rs)
-    where (t', rs) = foldl proveCT (t, RS [Sat DM.empty]) cts
-prove t _ = (t, RS [])
+tokenize ∷ Int → Op → (Op, Int)
+tokenize c (Rule cts t) = (Rule ucts t', c + DM.size m')
+    where (t', m) = go t DM.empty
+          (ucts, m') = foldr (\ct (cts', m') → case ct of
+                   T t' → let (ut, m'') = go t' m' in (T ut:cts', m'')
+                   C cn t1 t2 → let (ut1, m'') = go t1 m'
+                                    (ut2, m''') = go t2 m'' in
+                                (C cn ut1 ut2:cts', m''')) ([], m) cts
+          go ∷ Term → DM.Map Var Var → (Term, DM.Map Var Var)
+          go (V (Var (N n))) m = case DM.lookup (Var $ N n) m of
+                  Just v → (V v, m)
+                  _ → (V $ Var $ N un, DM.insert (Var $ N n) (Var $ N un) m)
+              where un = '_': show (c + DM.size m)
+          go (R (RT n ts)) m = (R $ RT n ts', m')
+              where (ts', m') = foldr (\t (ts', m') → let (t', m'') = go t m' in
+                                                      (t':ts',m'')) ([], m) ts
 
 main ∷ IO()
 main = takeWhile (≠QUIT) ∘ map fst ∘ join ∘ map (parse op ∘ BSC.unpack) ∘ BSC.split '\n' <$>
        BSC.getContents ≫=
-       foldM_ (\os o → case o of
+       foldM_ (\(os, c) o → case o of
                    Rule _ _ → do
+                       let (o', c') = tokenize c o
+                       BSC.putStrLn ∘ BSC.pack ∘ show $ o'
                        BSC.putStrLn "Ok." --  ∘ BSC.pack ∘ show $ o
-                       return (o:os)
+                       return (o':os, c')
                    Query _ → do
-                       let (_, r) = prove (Tok $ tokenize 0 os) o
+                       let (r, c') = prove c (reverse os) o
                        BSC.putStrLn ∘ BSC.pack ∘ show $ r
                        BSC.putStrLn "Ready."
-                       return os
+                       return (os, c')
                    QUIT → do
                        BSC.putStrLn "Bye."
-                       return os
-                   _ → return os) [] ∘ (⧺ [QUIT])
+                       return (os, c)
+                   _ → return (os, c)) ([], 0) ∘ (⧺ [QUIT])
 
