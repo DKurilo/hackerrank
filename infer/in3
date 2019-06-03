@@ -1,0 +1,2 @@
+choose(fun x y -> x, fun x y -> y)
+

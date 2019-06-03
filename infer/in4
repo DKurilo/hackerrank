@@ -1,0 +1,2 @@
+fun f -> let x = fun g y -> let _ = g(y) in eq(f, g) in x
+

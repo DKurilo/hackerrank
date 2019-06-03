@@ -1,0 +1,2 @@
+fun x -> let y = fun z -> z in y
+
