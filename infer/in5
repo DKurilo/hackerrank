@@ -1,0 +1,2 @@
+fun f -> let g = id in pair(g(one), g(f))
+
