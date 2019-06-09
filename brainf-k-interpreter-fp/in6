@@ -1,0 +1,14 @@
+2 12
+17$
+,>,                               //input 1 and 2
+>++++++[-<--------<-------->>]<<  //decrement both by 48
+[->+<]>>++<                       //add them and then put 2 in the third cell(devisor)
+[
+>[->+>+<<]
+>[-<<-
+[>]>>>[<[>>>-<<<[-]]>>]<<]        //integer division (4/2 = 2; 3/2 = 1)
+>>>+
+<<[-<<+>>]
+<<<]
+>[-]>>>>[-<<<<<+>>>>>]
+<<<<++++++[-<++++++++>]<.         //increment 28 and print result
