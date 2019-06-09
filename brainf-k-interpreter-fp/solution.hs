@@ -15,7 +15,7 @@ allowed ∷ String
 allowed = "><+-.,[]`"
 
 maxc ∷ Int
-maxc = 10^5
+maxc = 10^10
 
 data Op = IncDP | DecDP | IncD | DecD | Write | Read | JFZ | JBNZ | Debug
 
@@ -59,7 +59,11 @@ prevm p = go (prevo p) 0
 data Data = D [Int] Int [Int]
 
 opd ∷ (Int → Int) → Data → Data
-opd o (D pcs c ncs) = D pcs (o c) ncs
+opd o (D pcs c ncs) = D pcs c'' ncs
+    where c' = o c
+          c'' | c' < 0 = 255
+              | c' > 255 = 0
+              | otherwise = c'
 
 nextd ∷ Data → Data
 nextd (D pcs c (c':ncs)) = D (c:pcs) c' ncs
