@@ -1,0 +1,3 @@
+let lst1 = cons(id, nil) in let lst2 = cons(succ, lst1) in lst2
+
+

@@ -1,5 +1,12 @@
 {-# LANGUAGE UnicodeSyntax, LambdaCase #-}
 module Main where
+{--
+ -
+ - Damas-Hindley-Milner Algorithm J implementation
+ - https://en.wikipedia.org/wiki/Hindley%E2%80%93Milner_type_system
+ - https://en.wikipedia.org/wiki/Unification_(computer_science)
+ -
+ -}
 
 import Prelude.Unicode
 import Control.Monad.Unicode
@@ -8,9 +15,9 @@ import Control.Exception
 import Control.Applicative
 import Data.Either
 import Data.Char
-import qualified Data.ByteString.Char8 as BSC
 import qualified Data.Map as DM
 import qualified Data.Set as DS
+import Data.List (intercalate, (\\))
 import Debug.Trace
 import System.IO
 
@@ -57,6 +64,12 @@ tkn ∷ Int → Token
 tkn c = Tkn tkn' v
     where v = 'α':show c
           tkn' = tkn (c+1)
+
+prettytkn ∷ Int → Token
+prettytkn c = Tkn tkn' v
+    where tl = map (:[]) ['a'..'z'] ⧺ zipWith (\i n → i: show n) (cycle ['a'..'z']) [0..]
+          v = tl !! c
+          tkn' = prettytkn (c+1)
 
 parse ∷ Parser a → String → [(a, String)]
 parse (P p) = p
@@ -299,15 +312,28 @@ instantiateST st (STG sτ τs) = Right (STG sτ' τs', st'')
     where (Right (sτ', st')) = instantiateST st sτ
           (Right (τs', st'')) = instantiateTs st' τs
 
-generalize ∷ State → Type → Either String (Type, State)
-generalize st τ = Right (TFA is τ' subst, st')
+generalize' ∷ State → Type → (Type → Instantiation → Ident → Bool) → Either String (Type, State)
+generalize' st τ p = Right (TFA (DS.elems is) τ' subst, st')
     where inst = sinst st'
-          ids = identsT τ'
+          upi = DM.elems ∘ DM.map (\(TST (STI i)) → i) ∘ ssubst $ st'
+          ids = DS.filter (`notElem` upi) ∘ identsT $ τ'
           (Right (τ', st')) = instantiateT st τ
-          is = DS.elems ∘ DS.filter (\i → case DM.lookup i inst of
-                                              Just Any → True
-                                              _ → False) $ ids
-          subst = DM.filterWithKey (\k v → v ≠ Any ∧ k `elem` ids) inst
+          is = DS.filter (free (p τ) inst) ids
+          nf = ids DS.\\ is
+          subst = DM.filterWithKey (\k v → k `DS.member` nf) inst
+
+finalGeneralize ∷ State → Type → Either String (Type, State)
+finalGeneralize st τ = generalize' st τ (\_ _ _ → True)
+
+generalize ∷ State → Type → Either String (Type, State)
+generalize st τ = 
+    generalize' st τ
+        (\τ inst i → not ∘ or ∘ map (\τ → i `DS.member` identsT τ) ∘ DM.elems $ inst)
+
+free ∷ (Instantiation → Ident → Bool) → Instantiation → Ident → Bool
+free p inst i = case DM.lookup i inst of
+   Just Any → p inst i
+   _ → False
 
 identsT ∷ Type → DS.Set Ident
 identsT Any = DS.empty
@@ -346,7 +372,7 @@ tokenize st (TST sτ) = case r1 of
     Right _ → Right  (simplifyType $ TST sτ', st')
     where r1 = tokenizeS st sτ
           (Right (sτ', st')) = r1
-tokenize st (TFA is τ subst) = trace (show (is, τ, τ')) $ Right (τ', S tk ctx (ssubst st) inst)
+tokenize st (TFA is τ subst) = Right (τ', S tk ctx (ssubst st) inst)
     where st' = foldl (\st i → let (Right (τ, st')) = newvar st
                                    (Right st'') = addSubst st' i τ in st'') st is
           (S tk' ctx' subst' inst', inst'') =
@@ -399,11 +425,6 @@ simplifySType (STG sτ τs) = STG (simplifySType sτ) (map simplifyType τs)
 
 unify ∷ State → Type → Type → Either String State
 unify st τ1 τ2 = unify' st (simplifyType τ1) (simplifyType τ2)
--- unify st τ1 τ2 = case find st (simplifyType τ1) of
---     Right τ1' → case find st (simplifyType τ2) of
---         Right τ2' → unify' st τ1' τ2'
---         Left e → Left e
---     Left e → Left e
 
 unify' ∷ State → Type → Type → Either String State
 unify' st τ1@(TST (STI i)) τ2
@@ -414,7 +435,6 @@ unify' st τ1@(TST (STI i)) τ2
                                         ⧺ " in " ⧺ show τ2
             Just τ1' → unify st τ1' τ2
             _ → unify st τ2 τ1
-            -- Left $ "Unbounded variable found while checking "  ⧺ i ⧺ " in " ⧺ show τ2
 unify' st τ1 τ2@(TST (STI i)) = case DM.lookup i (sinst st) of
     Just Any | occursCheck st i τ1 → addInst st i τ1
              | otherwise → Left $ "Recursion found while checking " ⧺ i ⧺ " in " ⧺ show τ1
@@ -425,6 +445,7 @@ unify' st (TU τs1 τ1) (TU τs2 τ2) = case unifys st τs1 τs2 of
 unify' st (TC sτ1 τ1) (TC sτ2 τ2) = case unifyST st sτ1 sτ2 of
             Right st' →  unify st' τ1 τ2
             Left e → Left e
+unify' st (TST sτ1) (TST sτ2) = unifyST st sτ1 sτ2
 unify' st τ1 τ2
     | τ1 ≡ τ2 = Right st
     | otherwise = Left $ "Can't unify " ⧺ show τ1 ⧺ " and " ⧺ show τ2
@@ -470,10 +491,8 @@ occursCheck st i (TST (STG sτ τs)) = and ∘ map (occursCheck st i) $ TST sτ:
 compose ∷ State → State → State
 compose (S otk octx osubst oinst) (S ntk nctx nsubst ninst) = S tk ctx subst inst
     where tk = ntk
-          ctx = DM.union octx nctx
-          subst = DM.mapWithKey (\k v → case DM.lookup k nsubst of
-                                           Just v' → v'
-                                           _ → v) osubst
+          ctx = DM.union nctx octx
+          subst = osubst
           inst = DM.union ninst oinst
 
 compareI ∷ State → Ident → Ident → Bool
@@ -494,7 +513,7 @@ infer st (EL i e0 e1) = case r1 of
     Left e → Left e
     where r1 = infer st e0
           (Right (τ, st')) = r1
-          r2 = trace (show (i, τ, generalize st' τ, st')) $ generalize st' τ
+          r2 = generalize st' τ
           (Right (γτ, st'')) = r2
           (Right st''') = addCtx st'' i γτ
           r3 = infer st''' e1
@@ -503,33 +522,22 @@ infer st (EL i e0 e1) = case r1 of
 -- [Abs]
 infer st (EF [i] e) = case r1 of
     Right _ → case r2 of
-        Right _ → case r3 of
-            Right _ → Right (TC (STP τ) τ', st `compose` st''')
-            Left e → Left e
+        Right _ → Right (TC (STP τ) τ', st `compose` st'')
         Left e → Left e
     Left e → Left e
-    where r1 = newvar st
-          (Right (τ, st')) = newvar st
-          r2 = addSubst st' i τ
-          (Right st'') = r2
-          r3 = infer st'' e
-          (Right (τ', st''')) = r3
+    where r1 = addVar st i
+          (Right (τ, st')) = r1
+          r2 = infer st' e
+          (Right (τ', st'')) = r2
 infer st (EF is e) = case r1 of
     Right _ → case r2 of
         Right _ → Right (TU τs τ', st `compose` st'')
         Left e → Left e
     Left e → Left e
     where r1 = foldr (\i r → case r of
-                  Right (τs, st) → let r1 = newvar st
-                                       (Right (τ, st')) = r1
-                                       r2 = addSubst st' i τ
-                                       (Right st'') = r2 in
-                                       case r1 of
-                                           Right _ → case r2 of
-                                                   Right _ → Right (τ:τs, st'')
-                                                   Left e → Left e
-                                           Left e → Left e
-                  Left e → Left e) (Right ([], st)) is
+                  Right (τs, st) → case addVar st i of
+                      Right (τ, st') → Right (τ:τs, st')
+                      Left e → Left e) (Right ([], st)) is
           (Right (τs, st')) = r1
           r2 = infer st' e
           (Right (τ', st'')) = r2
@@ -539,6 +547,12 @@ infer st (ES se) = case inferS st se of
     Left e → Left e
 
 infer (S tkn ctx subst inst) (EIT i t) = Right (t, S tkn (DM.insert i t ctx) subst inst)
+
+addVar ∷ State → Ident → Either String (Type, State)
+addVar st i = Right (τ, st''')
+    where (Right (τ, st')) = newvar st
+          (Right st'') = addSubst st' i τ
+          (Right st''') = removeCtx st'' i
 
 inferS ∷ State → SExpr → Either String (Type, State)
 inferS st (SEP e) = case infer st e of
@@ -570,7 +584,7 @@ inferS st (SEFC se es) = case r1 of
           r3 = newvar st''
           (Right (τ', st''')) = r3
           r4 = if length τs == 1
-                 then unify st''' τ0 (TC (STP ∘ head $ τs) τ')
+                 then unify st''' τ0 (TC (simplifySType ∘ STP ∘ head $ τs) τ')
                  else unify st''' τ0 (TU τs τ')
           (Right st'''') = r4
 
@@ -608,14 +622,65 @@ env = [ "head: forall[a] list[a] -> a"
       , "choose_curry: forall[a] a -> a -> a"
       ]
 
+
+
+prettyPrint ∷ Type → String
+prettyPrint = pp DM.empty (prettytkn 0)
+
+pp ∷ DM.Map Ident Ident → Token → Type → String
+pp s t Any = "oops" -- error
+pp s t (TU τs τ) = "(" ⧺ ppTs s t τs ⧺ ") -> " ⧺ pp s t τ
+pp s t (TFA [] τ _) = pp s t τ
+pp s t (TFA is τ _) = "forall[" ⧺ (unwords ∘ reverse $ is') ⧺ "] " ⧺ pp s' t τ
+    where (is', s', t') = foldl (\(is, s, Tkn tn tc) i → let s' = DM.insert i tc s in
+                                                         (tc:is, s', tn)) ([], s, t) $
+                          uncurry (⧺) ∘ srt is $ τ
+pp s t (TC sτ τ) = ppS s t sτ ⧺ " -> " ⧺ pp s t τ
+pp s t (TST sτ) = ppS s t sτ
+
+ppTs ∷ DM.Map Ident Ident → Token → [Type] → String
+ppTs s t = intercalate ", " ∘ map (pp s t)
+
+ppS ∷ DM.Map Ident Ident → Token → SType → String
+ppS s t (STP τ) = "(" ⧺ pp s t τ ⧺ ")"
+ppS s t (STI i) = case DM.lookup i s of
+    Just i' → i'
+    _ → i
+ppS s t (STG sτ τs) = ppS s t sτ ⧺ "[" ⧺ ppTs s t τs ⧺ "]"
+
+srt ∷ [Ident] → Type → ([Ident], [Ident])
+srt [] _ = ([], [])
+srt is Any = ([], is)
+srt is (TU τs τ) = (is' ⧺ is'', ris')
+    where (is', ris) = srtTs is τs
+          (is'', ris') = srt ris τ
+srt is (TFA is' τ _) = (is'', ris')
+    where dis = is \\ is'
+          (is'', ris) = srt dis τ
+          ris' = is \\ dis
+srt is (TC sτ τ) = (is' ⧺ is'', ris')
+    where (is', ris) = srtS is sτ
+          (is'', ris') = srt ris τ
+srt is (TST sτ) = srtS is sτ
+
+srtS ∷ [Ident] → SType → ([Ident], [Ident])
+srtS is (STP τ) = srt is τ
+srtS is (STI i) = if i `elem` is then ([i], is \\ [i]) else ([], is)
+srtS is (STG sτ τs) = (is' ⧺ is'', ris')
+    where (is', ris) = srtS is sτ
+          (is'', ris') = srtTs ris τs
+
+srtTs ∷ [Ident] → [Type] → ([Ident], [Ident])
+srtTs is = foldl (\(is, ris) τ → let (is', ris') = srt ris τ in
+                                 (is ⧺ is', ris')) ([],is)
+
 main ∷ IO()
 main = do
     let e = loadEnv env
-    t ← infer (S (tkn 0) (loadEnv env) DM.empty DM.empty) ∘ fst ∘ head ∘ parse expr ∘ BSC.unpack
-        <$> BSC.getLine
+    t ← infer (S (tkn 0) (loadEnv env) DM.empty DM.empty) ∘ fst ∘ head ∘ parse expr <$> getLine
     case t of
-        Right (t, st) → case generalize st t of
-            Right (τ, st') → trace (show st') $ BSC.putStrLn ∘ BSC.pack ∘ show $ τ
+        Right (t, st) → case finalGeneralize st t of
+            Right (τ, st') → putStrLn ∘ prettyPrint $ τ
             Left s → throwIO $ TypeException s
         Left s → throwIO $ TypeException s
 
