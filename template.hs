@@ -2,7 +2,8 @@
 
 module Main where
 
-import Prelude.Unicode
+import Prelude.Unicode -- so no we can use ←, ∷, etc
+import Control.Monad.Unicode -- so now we can use ≫, ≫=, etc.
 import Control.Monad
 import qualified Data.ByteString.Char8 as BSC
 import Debug.Trace
