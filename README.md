@@ -41,6 +41,12 @@ One more task that make your knowledge more structured.
 https://www.hackerrank.com/challenges/down-with-abstractions/problem  
 https://github.com/DKurilo/hackerrank/tree/master/down-with-abstractions  
 
+### 6. Convolutional Codes
+
+Great explanation and theory, perfect idea.. But broken result estimation. Still worth to solve.  
+https://www.hackerrank.com/challenges/convolutional-coding/problem  
+https://github.com/DKurilo/hackerrank/tree/master/convolutional-coding  
+
 ## Just to remember  
 -- to compile with profiler:  
 -- `ghc -prof -fprof-auto -rtsopts ./solution.hs`  
