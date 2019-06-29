@@ -15,7 +15,7 @@ https://github.com/DKurilo/hackerrank/tree/master/brainf-k-interpreter-fp
 
 ### 2. Hindley-Milner Inference
 
-It's great thing to understand how inferance works:
+It's great thing to understand how inferance works:  
 https://www.hackerrank.com/challenges/infer/problem  
 https://github.com/DKurilo/hackerrank/tree/master/infer  
 
