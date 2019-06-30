@@ -1,0 +1,11 @@
+*
+!/**/
+!/**/*.hs
+!/**/in*
+!/**/out*
+!*.hs
+!in*
+!out*
+!README.md
+!*.py
+!.gitignore
