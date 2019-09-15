@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, UnicodeSyntax #-}
+{-# LANGUAGE UnicodeSyntax #-}
 
 module Main where
 
@@ -12,8 +12,8 @@ gcd2 ∷ Int → Int → Int
 gcd2 x 0 = x
 gcd2 0 x = x
 gcd2 x y
-    | x > y = gcd y $ x `mod` y
-    | otherwise = gcd x $ y `mod` x
+    | x > y = gcd2 y $ x `mod` y
+    | otherwise = gcd2 x $ y `mod` x
 
 lcd2 :: Int → Int → Int
 lcd2 x y
@@ -23,8 +23,8 @@ lcd2 x y
 
 lcd ∷ [Int] → Int
 lcd [] = 0 -- error
-lcd (x:[]) = x
-lcd (x1:x2:xs) = lcd $ (lcd2 x1 x2):xs
+lcd [x] = x
+lcd (x1:x2:xs) = lcd $ lcd2 x1 x2:xs
 
 main ∷ IO()
 main = do
