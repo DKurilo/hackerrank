@@ -39,4 +39,3 @@ main = do
 
     hFlush fptr
     hClose fptr
-
