@@ -6,7 +6,15 @@
 -- UPD. Well.. I checked other solutions and can see this exercise is not "Expert" at all.
 -- I was just able to solve it as is without thinking about any optimization.
 -- So, yes I solve it, but don't use my solution. :)
-module Main where
+-- Here is good solution:
+-- https://www.hackerrank.com/rest/contests/master/challenges/morgan-and-a-string/hackers/kenanbit/download_solution
+-- we need to add some unused character to each string and then:
+-- solve :: (String, String) -> String
+-- solve (a, "") = a
+-- solve ("", b) = b
+-- solve (a, b)
+--     | a < b     = let (f,s) = splitHead a in f ++ solve (s,b)
+--     | otherwise = let (f,s) = splitHead b in f ++ solve (a,s)
 
 import Prelude.Unicode -- so no we can use ←, ∷, etc
 import Control.Monad.Unicode -- so now we can use ≫, ≫=, etc.
