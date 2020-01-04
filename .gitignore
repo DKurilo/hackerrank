@@ -8,5 +8,7 @@
 !out*
 !README.md
 !*.py
+!*.c
+!*.cpp
 !.gitignore
 *~
