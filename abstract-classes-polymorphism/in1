@@ -1,0 +1,6 @@
+5 1
+set 1 2
+set 5 6
+get 1
+get 2
+get 5

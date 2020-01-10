@@ -1,0 +1,17 @@
+16 4
+set 4 2
+set 2 7
+set 2 9
+get 2
+set 1 8
+set 5 9
+set 6 15
+get 4
+get 5
+set 2 10
+get 2
+set 6 4
+get 5
+get 6
+set 6 10
+get 6
