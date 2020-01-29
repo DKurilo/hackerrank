@@ -10,5 +10,6 @@
 !*.py
 !*.c
 !*.cpp
+!*.js
 !.gitignore
 *~
