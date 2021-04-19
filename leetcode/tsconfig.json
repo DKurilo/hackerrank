@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "lib": ["es2019"],
+    "target": "es6",
+    "noImplicitAny": true,
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "typeRoots": [
+      "./types",
+      "./node_modules/@types"
+    ],
+    "paths": {
+      "*": [
+        "node_modules/*"
+      ]
+    },
+    "types": ["node"]
+  },
+  "include": [
+    "src//**/*",
+    "types/**/*"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

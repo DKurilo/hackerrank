@@ -14,4 +14,4 @@
 !*.ts
 !.gitignore
 *~
-!leetcode
+!leetcode/**/*
