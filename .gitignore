@@ -11,5 +11,7 @@
 !*.c
 !*.cpp
 !*.js
+!*.ts
 !.gitignore
 *~
+!leetcode
