@@ -102,6 +102,8 @@ const buildNFA = <A extends string>(
   };
 };
 
+// I wasn't able to use pure functional aproach here because of performance. :(
+// Even in Haskell you can have such problems, but in TypeScript it's even more limiting.
 const runNFA = <A extends string>(nfa: NFA<A>) => (s: A[]): boolean => {
   let sts = new Set([nfa.q0]);
   let front0 = new Set([nfa.q0]);
