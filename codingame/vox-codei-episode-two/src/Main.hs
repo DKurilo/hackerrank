@@ -191,8 +191,7 @@ planActions g removedRounds forbiddenPlaces explosions
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering -- DO NOT REMOVE
-  inputLine <- getLine
-  let input = words inputLine
+  input <- words <$> getLine
   let width = read (head input) :: Int
   let height = read (input !! 1) :: Int
   grid <- defineGrid width height
