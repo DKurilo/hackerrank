@@ -26,11 +26,13 @@ data Bot = Bot
     botCloseDistance :: Int,
     botCloseAngle :: Int,
     botCloseMinThurst :: Int,
-    botCloseCoef :: Double
+    botCloseCoef :: Double,
+    botLap :: Int,
+    botToFinish :: Bool
   }
 
 mkBot :: Bot
-mkBot = Bot True [] False 40 400 50 5000 12 10 40
+mkBot = Bot True [] False 40 400 50 5000 12 10 40 0 False
 
 data Input = Input
   { iMe :: Point,
@@ -75,32 +77,44 @@ betterTarget' radius me destination
     ddy' = radius' * dy / dist
 
 betterTarget :: Int -> Point -> Point -> Point
-betterTarget angle me destination =
-  Point
-    (round $ (fromIntegral . pX) me + dx * cos angle' - dy * sin angle')
-    (round $ (fromIntegral . pY) me + dx * sin angle' + dy * cos angle')
+betterTarget angle me destination
+  | abs angle < 90 = trace (show ("<90", me, destination, angle)) $ rot angle
+  | abs angle == 90 = trace (show ("=90", me, destination, angle)) $ rot (- angle + signum angle * 135)
+  | otherwise = trace (show (">90", me, destination, angle)) $ rot (180 - angle)
   where
-    angle' :: Double
-    angle' = - 2 * fromIntegral angle
+    dx :: Double
     dx = fromIntegral $ pX destination - pX me
     dy = fromIntegral $ pY destination - pY me
+    rot :: Int -> Point
+    rot a =
+      Point
+        (round $ (fromIntegral . pX) destination + dx * cos a' - dy * sin a')
+        (round $ (fromIntegral . pY) destination + dx * sin a' + dy * cos a')
+      where
+        a' = fromIntegral a * pi / 180
 
-addNextCheckpoint :: Point -> State Bot ()
-addNextCheckpoint p = do
+addNextCheckpoint :: Point -> Point -> State Bot ()
+addNextCheckpoint me p = do
   bot <- get
-  when ((null . botCheckPoints) bot || (head . botCheckPoints) bot /= p) $
-    put bot {botCheckPoints = p : botCheckPoints bot, botIsNewCheckpoint = True}
+  when ((null . botCheckPoints) bot || (head . botCheckPoints) bot /= p) $ do
+    let lap
+          | (null . botCheckPoints) bot = 1
+          | (head . botCheckPoints) bot `distance` (last . botCheckPoints) bot < 600 = botLap bot + 1
+          | otherwise = botLap bot
+        nearToFinish = botLap bot == 3 && p `distance` (last . botCheckPoints) bot < 600
+        checkpoints = p : [me | null . botCheckPoints $ bot] <> botCheckPoints bot
+    put bot {botCheckPoints = checkpoints, botIsNewCheckpoint = True, botLap = lap, botToFinish = nearToFinish}
 
 setCheckpointIsNotNew :: State Bot ()
 setCheckpointIsNotNew = modify (\bot -> bot {botIsNewCheckpoint = False})
 
 thrustAndAngle :: Int -> (Int, Int, Int, Int)
 thrustAndAngle dist
-  | trace (show dist) $ dist > 5000 = (40, 50, 40, 50)
-  | dist > 4000 = (20, 70, 30, 35)
-  | dist > 3000 = (20, 70, 15, 25)
-  | dist > 2000 = (20, 70, 8, 20)
-  | otherwise = (10, 90, 1, 10)
+  | trace (show dist) $ dist > 5000 = (90, 50, 40, 50)
+  | dist > 4000 = (70, 70, 30, 35)
+  | dist > 3000 = (50, 70, 15, 25)
+  | dist > 2000 = (35, 70, 8, 20)
+  | otherwise = (30, 90, 5, 10)
 
 updateBotParameters :: Input -> State Bot ()
 updateBotParameters input = do
@@ -121,13 +135,13 @@ updateBotParameters input = do
 
 step :: Input -> State Bot Command
 step input = do
-  addNextCheckpoint . iCheckpoint $ input
+  addNextCheckpoint (iMe input) . iCheckpoint $ input
   updateBotParameters input
   bot <- get
   let me = iMe input
       nextPoint = iCheckpoint input
       target = betterTarget (iAngle input) me nextPoint
-      distToTarget = me `distance` target
+      distToTarget = me `distance` nextPoint
       mkCommand = Command (pX target) (pY target)
       (bot', command)
         | distToTarget < botCloseDistance bot && iAngle input > botCloseAngle bot =
@@ -135,7 +149,7 @@ step input = do
         | (abs . iAngle) input > botCriticalAngle bot =
           (bot, mkCommand . Thrust $ thrustFromAngle (botCoef bot) (botMinThrust bot) (botCriticalAngle bot) (iAngle input))
         | (abs . iAngle) input > 1 = (bot, mkCommand . Thrust $ 100)
-        | botHaveBoost bot && distToTarget > 3000 && iCycle input > 5 && (abs . iAngle) input == 0 =
+        | botHaveBoost bot && botToFinish bot && (abs . iAngle) input == 0 =
           (bot {botHaveBoost = False}, mkCommand Boost)
         | otherwise = (bot, mkCommand . Thrust $ 100)
   put bot'
