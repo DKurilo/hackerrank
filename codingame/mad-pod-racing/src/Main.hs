@@ -8,11 +8,12 @@ data Point = Point {pX :: Int, pY :: Int} deriving (Eq, Show)
 distance :: Point -> Point -> Int
 distance p1 p2 = floor . sqrt . (fromIntegral :: Int -> Double) $ (pX p1 - pX p2) * (pX p1 - pX p2) + (pY p1 - pY p2) * (pY p1 - pY p2)
 
-data Thrust = Thrust Int | Boost
+data Thrust = Thrust Int | Boost | Shield
 
 instance Show Thrust where
   show (Thrust thrust) = show thrust
   show Boost = "BOOST"
+  show Shield = "SHIELD"
 
 data Command = Command {cX :: Int, cY :: Int, cThrust :: Thrust}
 
