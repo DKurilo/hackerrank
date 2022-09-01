@@ -1,3 +1,10 @@
+# SPOILER ALERT
+
+These are solutions for some puzzles/exercises from hackerrank / leetcode / codingame.  
+Please, solve them before reding solution.  
+Using solution after you wrote your own can give you ideas.  
+Using solution before you solve it makes your brain lazy.  
+
 # HackerRank solutions
 
 **It contains solutions. Don't read it if you want to solve tasks without help**
